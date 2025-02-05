@@ -204,7 +204,7 @@ class DBOperations:
         """)
         destination_summary = cursor.fetchall()
         
-        # query 2: count flights by pilot using PilotID
+        # query 2: count flight by pilot using PilotID
         cursor.execute("""
             SELECT PilotID, COUNT(*) AS flight_count 
             FROM Flight 
@@ -222,7 +222,7 @@ class DBOperations:
         else:
             print("No flight data for destinations.")
         
-        print("\nSummary: Number of Flights by Pilot")
+        print("Summary: Number of Flights by Pilot")
         if pilot_summary:
             for row in pilot_summary:
                 print("Pilot License:", row["PilotID"], "->", row["flight_count"], "flights")
