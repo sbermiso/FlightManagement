@@ -1,204 +1,174 @@
-import sqlite3
+from database import DBOperations # import the DBOperations class from database module
 
-# Define DBOperation class to manage all data into the database.
-# Give a name of your choice to the database
+def main():
+    db = DBOperations() # create an instance of DBOperations to interact with the SQLite database
 
+    # display the menu and process user input
+    while True:
+        print("Main Menu:")
+        print("1. Add a New Flight")
+        print("2. View Flights by Criteria")
+        print("3. Update Flight Information")
+        print("4. Assign Pilot to Flight")
+        print("5. View Pilot Schedule")
+        print("6. View/Update Destination Information")
+        print("7. Flight Summary")
+        print("8. Exit")
+        choice = input("Enter your choice: ")
 
-class DBOperations:
-  sql_create_table_firsttime = "create table if not exists "
+        # user selects option 1: Add a New Flight
+        if choice == "1":
+            try:
+                origin = int(input("Enter origin DestinationID: "))
+                destination = int(input("Enter destination DestinationID: "))
+            except ValueError:
+                print("Please enter numeric values for DestinationID.")
+                continue
+            date = input("Enter departure date (YYYY-MM-DD): ")
+            print("Select flight status:")
+            print("1. Scheduled")
+            print("2. Delayed")
+            print("3. Cancelled")
+            choice_status = input("Enter your choice (default 1): ") or "1"
+            # map the user's selection to the status string
+            if choice_status == "1":
+                status = "Scheduled"
+            elif choice_status == "2":
+                status = "Delayed"
+            elif choice_status == "3":
+                status = "Cancelled"
+            else:
+                print("Invalid selection.") # invalid input defaults to 'Scheduled' status
+                status = "Scheduled"
+            db.insert_flight(origin, destination, date, status)
+            print("New flight added.")
 
-  sql_create_table = "create table TableName"
+        # user selects option 2: View Flights by Criteria
+        elif choice == "2":
+            print("Search by criteria:")
+            print("a. FlightDestination")
+            print("b. Status")
+            print("c. DepartureDate")
+            print("d. View All Flights")
+            crit = input("Enter criteria (a/b/c/d): ").lower()
+            if crit == "a":
+                criteria = "FlightDestination"
+                try:
+                    value = int(input("Enter DestinationID for destination: "))
+                except ValueError:
+                    print("Please enter a numeric DestinationID.")
+                    continue
+                db.view_flights_by_criteria(criteria, value)
+            elif crit == "b":
+                criteria = "Status"
+                value = input("Enter flight status: ")
+                db.view_flights_by_criteria(criteria, value)
+            elif crit == "c":
+                criteria = "DepartureDate"
+                value = input("Enter departure date (YYYY-MM-DD): ")
+                db.view_flights_by_criteria(criteria, value)
+            elif crit == "d":
+                # view all flights without filtering
+                db.view_all_flights()
+            else:
+                print("Invalid criteria selected.")
 
-  sql_insert = ""
-  sql_select_all = "select * from TableName"
-  sql_search = "select * from TableName where FlightID = ?"
-  sql_alter_data = ""
-  sql_update_data = ""
-  sql_delete_data = ""
-  sql_drop_table = ""
+        # user selects option 3: Update Flight Information
+        elif choice == "3":
+            try:
+                flight_id = int(input("Enter FlightID to update: "))
+            except ValueError:
+                print("Please enter a numeric FlightID.")
+                continue
+            print("Update options:")
+            print("1. DepartureDate")
+            print("2. Status")
+            option = input("Enter your update choice: ")
+            if option == "1":
+                new_date = input("Enter new departure date (YYYY-MM-DD): ")
+                db.update_flight(flight_id, "DepartureDate", new_date)
+            elif option == "2":
+                print("Select new flight status:")
+                print("1. Scheduled")
+                print("2. Delayed")
+                print("3. Cancelled")
+                choice_status = input("Enter your choice (default 1): ") or "1"
+                if choice_status == "1":
+                    new_status = "Scheduled"
+                elif choice_status == "2":
+                    new_status = "Delayed"
+                elif choice_status == "3":
+                    new_status = "Cancelled"
+                else:
+                    print("Invalid selection, defaulting to Scheduled.")
+                    new_status = "Scheduled"
+                db.update_flight(flight_id, "Status", new_status)
+            else:
+                print("Invalid update option.")
 
-  def __init__(self):
-    try:
-      self.conn = sqlite3.connect("DBName.db")
-      self.cur = self.conn.cursor()
-      self.cur.execute(self.sql_create_table_firsttime)
-      self.conn.commit()
-    except Exception as e:
-      print(e)
-    finally:
-      self.conn.close()
+        # user selects option 4: Assign Pilot to Flight
+        elif choice == "4":
+            try:
+                flight_id = int(input("Enter FlightID to assign pilot: "))
+            except ValueError:
+                print("Please enter a numeric FlightID.")
+                continue
+            pilot_id = input("Enter Pilot License (e.g., PIL1001): ")
+            db.assign_pilot_to_flight(flight_id, pilot_id)
 
-  def get_connection(self):
-    self.conn = sqlite3.connect("DBName.db")
-    self.cur = self.conn.cursor()
+        # user selects option 5: View Pilot Schedule
+        elif choice == "5":
+            pilot_id = input("Enter Pilot License to view schedule (e.g., PIL1001): ")
+            db.view_pilot_schedule(pilot_id)
 
-  def create_table(self):
-    try:
-      self.get_connection()
-      self.cur.execute(self.sql_create_table)
-      self.conn.commit()
-      print("Table created successfully")
-    except Exception as e:
-      print(e)
-    finally:
-      self.conn.close()
+        # user selects option 6: View/Update Destination Information
+        elif choice == "6":
+            print("Destination Information: (All Destinations)")
+            db.view_destinations()
+            update_prompt = input("Do you want to update any destination? (y/n): ")
+            if update_prompt.lower() == 'y':
+                try:
+                    dest_id = int(input("Enter DestinationID to update: "))
+                except ValueError:
+                    print("Please enter a numeric DestinationID.")
+                    continue
+                new_city = input("Enter new city (this will automatically update the airport name): ")
+                # define the mapping from allowed Canadian cities to their default airport names
+                city_to_airport = {
+                    "Toronto": "Toronto Pearson Airport",
+                    "Montreal": "Montréal–Trudeau Airport",
+                    "Vancouver": "Vancouver International Airport",
+                    "Calgary": "Calgary International Airport",
+                    "Ottawa": "Ottawa Macdonald–Cartier Airport",
+                    "Edmonton": "Edmonton International Airport",
+                    "Winnipeg": "Winnipeg Richardson Airport",
+                    "Quebec City": "Quebec City Jean Lesage Airport",
+                    "Halifax": "Halifax Stanfield Airport",
+                    "Victoria": "Victoria International Airport",
+                    "Hamilton": "Hamilton International Airport",
+                    "Kitchener": "Waterloo International Airport",
+                    "London": "London International Airport",
+                    "North York": "North York City Centre Airport",
+                    "Regina": "Regina International Airport"
+                }
+                if new_city not in city_to_airport:
+                    print("Error: Only allowed Canadian cities are accepted. Allowed cities are:")
+                    print(", ".join(city_to_airport.keys()))
+                else:
+                    db.update_destination(dest_id, "City", new_city)
+                    default_airport = city_to_airport[new_city]
+                    db.update_destination(dest_id, "AirportName", default_airport)
+                    print("Destination updated successfully.")
 
-  def insert_data(self):
-    try:
-      self.get_connection()
+        elif choice == "7":
+            db.summarize_data()
 
-      flight = FlightInfo()
-      flight.set_flight_id(int(input("Enter FlightID: ")))
+        elif choice == "8":
+            print("Exiting the application.")
+            break
 
-      self.cur.execute(self.sql_insert, tuple(str(flight).split("\n")))
+        else:
+            print("Invalid choice. Please select a valid option.")
 
-      self.conn.commit()
-      print("Inserted data successfully")
-    except Exception as e:
-      print(e)
-    finally:
-      self.conn.close()
-
-  def select_all(self):
-    try:
-      self.get_connection()
-      self.cur.execute(self.sql_select_all)
-      result = self.cur.fetchall()
-
-      # think how you could develop this method to show the records
-
-    except Exception as e:
-      print(e)
-    finally:
-      self.conn.close()
-
-  def search_data(self):
-    try:
-      self.get_connection()
-      flightID = int(input("Enter FlightNo: "))
-      self.cur.execute(self.sql_search, tuple(str(flightID)))
-      result = self.cur.fetchone()
-      if type(result) == type(tuple()):
-        for index, detail in enumerate(result):
-          if index == 0:
-            print("Flight ID: " + str(detail))
-          elif index == 1:
-            print("Flight Origin: " + detail)
-          elif index == 2:
-            print("Flight Destination: " + detail)
-          else:
-            print("Status: " + str(detail))
-      else:
-        print("No Record")
-
-    except Exception as e:
-      print(e)
-    finally:
-      self.conn.close()
-
-  def update_data(self):
-    try:
-      self.get_connection()
-
-      # Update statement
-
-      if result.rowcount != 0:
-        print(str(result.rowcount) + "Row(s) affected.")
-      else:
-        print("Cannot find this record in the database")
-
-    except Exception as e:
-      print(e)
-    finally:
-      self.conn.close()
-
-
-# Define Delete_data method to delete data from the table. The user will need to input the flight id to delete the corrosponding record.
-
-  def delete_data(self):
-    try:
-      self.get_connection()
-
-      if result.rowcount != 0:
-        print(str(result.rowcount) + "Row(s) affected.")
-      else:
-        print("Cannot find this record in the database")
-
-    except Exception as e:
-      print(e)
-    finally:
-      self.conn.close()
-
-
-class FlightInfo:
-
-  def __init__(self):
-    self.flightID = 0
-    self.flightOrigin = ''
-    self.flightDestination = ''
-    self.status = ''
-
-  def set_flight_id(self, flightID):
-    self.flightID = flightID
-
-  def set_flight_origin(self, flightOrigin):
-    self.flight_origin = flightOrigin
-
-  def set_flight_destination(self, flightDestination):
-    self.flight_destination = flightDestination
-
-  def set_status(self, status):
-    self.status = status
-
-  def get_flight_id(self):
-    return self.flightID
-
-  def get_flight_origin(self):
-    return self.flightOrigin
-
-  def get_flight_destination(self):
-    return self.flightDestination
-
-  def get_status(self):
-    return self.status
-
-  def __str__(self):
-    return str(
-      self.flightID
-    ) + "\n" + self.flightOrigin + "\n" + self.flightDestination + "\n" + str(
-      self.status)
-
-
-# The main function will parse arguments.
-# These argument will be definded by the users on the console.
-# The user will select a choice from the menu to interact with the database.
-
-while True:
-  print("\n Menu:")
-  print("**********")
-  print(" 1. Create table FlightInfo")
-  print(" 2. Insert data into FlightInfo")
-  print(" 3. Select all data from FlightInfo")
-  print(" 4. Search a flight")
-  print(" 5. Update data some records")
-  print(" 6. Delete data some records")
-  print(" 7. Exit\n")
-
-  __choose_menu = int(input("Enter your choice: "))
-  db_ops = DBOperations()
-  if __choose_menu == 1:
-    db_ops.create_table()
-  elif __choose_menu == 2:
-    db_ops.insert_data()
-  elif __choose_menu == 3:
-    db_ops.select_all()
-  elif __choose_menu == 4:
-    db_ops.search_data()
-  elif __choose_menu == 5:
-    db_ops.update_data()
-  elif __choose_menu == 6:
-    db_ops.delete_data()
-  elif __choose_menu == 7:
-    exit(0)
-  else:
-    print("Invalid Choice")
+if __name__ == "__main__":
+    main()
